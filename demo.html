@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>AgentOrchestrator Demo — Arc Testnet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.1/ethers.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Roboto',sans-serif;background:linear-gradient(160deg,#F5F0EB 0%,#EDE7E0 100%);min-height:100vh;color:#1a1a1a;padding-bottom:60px}
+#sb{position:sticky;top:0;z-index:100;background:#1a1a1a;color:#f0ebe4;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;font-size:13px;letter-spacing:.02em}
+#sb .lbl{font-weight:700;letter-spacing:.05em;font-size:12px;text-transform:uppercase}
+#sb .wi{display:flex;gap:20px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:#888;display:inline-block;margin-right:6px}
+.dot.on{background:#ccc}
+.hero{max-width:860px;margin:48px auto 0;padding:0 24px}
+.hero h1{font-size:28px;font-weight:700;letter-spacing:-.5px;color:#111}
+.hero .sub{margin-top:6px;font-size:13px;font-weight:400;color:#888;letter-spacing:.06em;text-transform:uppercase}
+.hero p{margin-top:12px;font-size:14px;color:#555;line-height:1.65;max-width:620px}
+.abar{max-width:860px;margin:20px auto 0;padding:0 24px}
+.abar details{border:1px solid #d4cec8;border-radius:8px;padding:12px 16px;background:#faf7f4}
+.abar summary{cursor:pointer;font-size:13px;font-weight:500;color:#333;user-select:none}
+.ag{display:grid;grid-template-columns:160px 1fr;gap:5px 10px;margin-top:10px;font-size:12px}
+.ag span:nth-child(odd){color:#888;font-weight:500}
+.ag span:nth-child(even){font-family:monospace;color:#222;word-break:break-all}
+.air{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap}
+.air label{font-size:12px;color:#888;font-weight:500;white-space:nowrap}
+.air input{flex:1;min-width:300px;font-family:monospace;font-size:12px;border:1px solid #ccc;border-radius:6px;padding:6px 10px;background:#fff;color:#111}
+.steps{max-width:860px;margin:28px auto 0;padding:0 24px;display:flex;flex-direction:column;gap:22px}
+.card{background:#faf7f4;border:1px solid #d4cec8;border-radius:12px;padding:24px 24px 20px}
+.ch{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+.sn{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;background:#ede7e0;border:1px solid #d4cec8;border-radius:20px;padding:3px 10px;white-space:nowrap}
+.ch h2{font-size:16px;font-weight:600;color:#111}
+.card p{font-size:13px;color:#666;margin-bottom:10px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg.full{grid-template-columns:1fr}
+.fd{display:flex;flex-direction:column;gap:4px}
+.fd label{font-size:12px;font-weight:500;color:#555}
+.fd input,.fd textarea{border:1px solid #ccc;border-radius:7px;padding:8px 11px;font-size:14px;font-family:'Roboto',sans-serif;background:#fff;color:#111;transition:border-color .15s}
+.fd input:focus,.fd textarea:focus{outline:none;border-color:#888}
+.fd textarea{resize:vertical;min-height:56px}
+.fd small{font-size:11px;color:#aaa}
+.btn{display:inline-flex;align-items:center;gap:8px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:500;font-family:'Roboto',sans-serif;cursor:pointer;transition:background .15s;letter-spacing:.01em;margin-top:14px}
+.btn:hover{background:#333}.btn:active{background:#000}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.sec{background:#fff;color:#1a1a1a;border:1px solid #ccc}.btn.sec:hover{background:#f0ebe4}
+.log{margin-top:12px;background:#1a1a1a;border-radius:8px;padding:10px 12px;font-family:monospace;font-size:12px;color:#ccc;min-height:40px;max-height:160px;overflow-y:auto;line-height:1.6;display:none}
+.log.on{display:block}
+.log .ll{margin-bottom:2px}.log .ll.err{color:#f08080}.log .ll.ok{color:#a0c8a0}
+.log .ll a{color:#aaddff;text-decoration:underline}
+.vg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vr{background:#fff;border:1px solid #d4cec8;border-radius:8px;padding:12px;font-size:13px;line-height:1.7;color:#333;min-height:56px}
+.vr strong{font-weight:600;display:block;margin-bottom:5px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#888}
+.mono{font-family:monospace;font-size:11px;word-break:break-all}
+@media(max-width:600px){.fg,.vg{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="sb">
+  <span class="lbl">AgentOrchestrator Demo</span>
+  <div class="wi">
+    <span><span class="dot" id="dot"></span><span id="wa">Not connected</span></span>
+    <span id="wn" style="color:#aaa"></span>
+  </div>
+</div>
+
+<div class="hero">
+  <h1>AgentOrchestrator Demo — Arc Testnet</h1>
+  <div class="sub">Layer 4: Multi-Agent Revenue Splitting</div>
+  <p>End-to-end walkthrough of the AgentOrchestrator lifecycle: form an orchestra, fund a job, submit and approve deliverables, then trigger automatic USDC distribution across all agents.</p>
+</div>
+
+<div class="abar">
+  <details>
+    <summary>Contract Addresses</summary>
+    <div class="ag">
+      <span>AgentIdentity</span><span>0x5Bef356f89425823FC7eebB3A6ED1A678F3b8233</span>
+      <span>AgentJob</span><span>0xD698d15F776279c0213444a779941e8E0Cbe5094</span>
+      <span>USDC</span><span>0x3600000000000000000000000000000000000000</span>
+    </div>
+    <div class="air">
+      <label>AgentOrchestrator:</label>
+      <input type="text" id="oa" placeholder="0x… (paste after deployment)" oninput="C.AgentOrchestrator=this.value.trim()" />
+    </div>
+  </details>
+</div>
+
+<div class="steps">
+
+  <div class="card">
+    <div class="ch"><span class="sn">Step 1</span><h2>Connect Wallet</h2></div>
+    <p>Connect MetaMask and switch to Arc Testnet (Chain ID 5042002).</p>
+    <button class="btn" onclick="connectWallet()">Connect MetaMask</button>
+    <div class="log" id="l1"></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="sn">Step 2</span><h2>Create Orchestra</h2></div>
+    <div class="fg">
+      <div class="fd"><label>Lead Agent Token ID</label><input id="co-lead" placeholder="e.g. 1" /></div>
+      <div class="fd"><label>Sub-Agent Token IDs</label><input id="co-subs" placeholder="e.g. 2, 3" /><small>Comma-separated</small></div>
+      <div class="fd"><label>Split Percentages (basis points)</label><input id="co-splits" placeholder="e.g. 5000, 3000, 2000" /><small>Must sum to 10000. Lead first, then each sub.</small></div>
+      <div class="fd"><label>Description</label><input id="co-desc" placeholder="e.g. Research + Writing orchestra" /></div>
+    </div>
+    <button class="btn" onclick="createOrchestra()">Create Orchestra</button>
+    <div class="log" id="l2"></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="sn">Step 3</span><h2>Accept Roles</h2></div>
+    <p>Each sub-agent must accept their role. Repeat for each sub-agent token.</p>
+    <div class="fg">
+      <div class="fd"><label>Orchestra ID</label><input id="ar-orch" placeholder="e.g. 1" /></div>
+      <div class="fd"><label>Agent Token ID (caller)</label><input id="ar-agent" placeholder="e.g. 2" /></div>
+    </div>
+    <button class="btn" onclick="acceptRole()">Accept Role</button>
+    <div class="log" id="l3"></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="sn">Step 4</span><h2>Fund Orchestrated Job</h2></div>
+    <p>Client approves USDC then creates the job. Both transactions will be sent.</p>
+    <div class="fg">
+      <div class="fd"><label>Orchestra ID</label><input id="fj-orch" placeholder="e.g. 1" /></div>
+      <div class="fd"><label>Total USDC Amount (wei)</label><input id="fj-amount" placeholder="e.g. 1000000000000000000" /><small>18 decimals — 1 USDC = 1e18</small></div>
+      <div class="fd"><label>Job Description</label><input id="fj-desc" placeholder="e.g. Full research report" /></div>
+    </div>
+    <button class="btn" onclick="fundJob()">Approve USDC &amp; Create Job</button>
+    <div class="log" id="l4"></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="sn">Step 5</span><h2>Submit Deliverables</h2></div>
+    <p>Each agent submits their deliverable hash. Repeat for every participant.</p>
+    <div class="fg">
+      <div class="fd"><label>Job ID</label><input id="sd-job" placeholder="e.g. 1" /></div>
+      <div class="fd"><label>Agent Token ID (caller)</label><input id="sd-agent" placeholder="e.g. 2" /></div>
+      <div class="fd"><label>Deliverable Hash (bytes32)</label><input id="sd-hash" placeholder="0x…" /><small>32-byte hash of the deliverable content</small></div>
+    </div>
+    <button class="btn" onclick="submitDeliverable()">Submit Deliverable</button>
+    <div class="log" id="l5"></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="sn">Step 6</span><h2>Approve Deliverables</h2></div>
+    <p>Lead agent approves each sub-agent's deliverable. Repeat per sub-agent.</p>
+    <div class="fg">
+      <div class="fd"><label>Job ID</label><input id="ad-job" placeholder="e.g. 1" /></div>
+      <div class="fd"><label>Sub-Agent Token ID to Approve</label><input id="ad-agent" placeholder="e.g. 2" /></div>
+    </div>
+    <button class="btn" onclick="approveDeliverable()">Approve Deliverable</button>
+    <div class="log" id="l6"></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="sn">Step 7</span><h2>Complete &amp; Auto-Split</h2></div>
+    <p>Client finalizes the job. USDC is distributed automatically to all agents per their split percentages.</p>
+    <div class="fg">
+      <div class="fd"><label>Job ID</label><input id="cj-job" placeholder="e.g. 1" /></div>
+    </div>
+    <button class="btn" onclick="completeJob()">Complete Job &amp; Distribute</button>
+    <div class="log" id="l7"></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><span class="sn">Step 8</span><h2>View Status</h2></div>
+    <div class="fg">
+      <div class="fd"><label>Orchestra ID</label><input id="vs-orch" placeholder="e.g. 1" /></div>
+      <div class="fd"><label>Job ID</label><input id="vs-job" placeholder="e.g. 1" /></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn sec" onclick="viewOrchestra()">Query Orchestra</button>
+      <button class="btn sec" onclick="viewJob()">Query Job</button>
+    </div>
+    <div class="vg" id="vrs" style="margin-top:14px;display:none">
+      <div class="vr" id="vr-o"><strong>Orchestra</strong><span class="mono">—</span></div>
+      <div class="vr" id="vr-j"><strong>Job</strong><span class="mono">—</span></div>
+    </div>
+    <div class="log" id="l8"></div>
+  </div>
+
+</div>
+
+<script>
+const CHAIN_ID = 5042002, CHAIN_HEX = "0x4CEC52";
+const EXPLORER = "https://testnet.arcscan.app";
+const C = {
+  AgentIdentity: "0x5Bef356f89425823FC7eebB3A6ED1A678F3b8233",
+  AgentJob: "0xD698d15F776279c0213444a779941e8E0Cbe5094",
+  USDC: "0x3600000000000000000000000000000000000000",
+  AgentOrchestrator: "",
+};
+const OABI = [
+  "function createOrchestra(uint256 leadAgentId,uint256[] calldata subAgentIds,uint256[] calldata splits,string calldata description) external returns (uint256)",
+  "function acceptOrchestraRole(uint256 orchestraId,uint256 agentId) external",
+  "function createOrchestratedJob(uint256 orchestraId,uint256 totalAmount,string calldata description) external returns (uint256)",
+  "function submitSubDeliverable(uint256 jobId,uint256 agentId,bytes32 deliverableHash) external",
+  "function approveSubDeliverable(uint256 jobId,uint256 agentId) external",
+  "function completeOrchestratedJob(uint256 jobId) external",
+  "function cancelOrchestratedJob(uint256 jobId) external",
+  "function getOrchestra(uint256 orchestraId) external view returns (tuple(uint256 leadAgentId,uint256[] subAgentIds,uint256[] splits,string description,bool active))",
+  "function getOrchestraMembers(uint256 orchestraId) external view returns (uint256[] memory,uint256[] memory)",
+  "function getOrchestratedJob(uint256 jobId) external view returns (tuple(uint256 orchestraId,address client,uint256 totalAmount,string description,uint8 status,uint256 createdAt))",
+  "function getSubTask(uint256 jobId,uint256 agentId) external view returns (tuple(bytes32 deliverableHash,bool submitted,bool approved))",
+];
+const ERC20ABI = [
+  "function approve(address spender,uint256 amount) external returns (bool)",
+  "function allowance(address owner,address spender) external view returns (uint256)",
+];
+
+let provider=null, signer=null;
+
+function log(id,msg,cls=""){
+  const el=document.getElementById("l"+id);
+  el.classList.add("on");
+  const d=document.createElement("div");
+  d.className="ll"+(cls?" "+cls:"");
+  d.innerHTML=msg;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+function logTx(id,hash,lbl="Tx"){
+  log(id,`${lbl}: <a href="${EXPLORER}/tx/${hash}" target="_blank">${hash.slice(0,18)}…</a>`,"ok");
+}
+function clearLog(id){const el=document.getElementById("l"+id);el.innerHTML="";el.classList.remove("on")}
+function setSB(addr,net){
+  document.getElementById("wa").textContent=addr?addr.slice(0,6)+"…"+addr.slice(-4):"Not connected";
+  document.getElementById("wn").textContent=net||"";
+  document.getElementById("dot").className="dot"+(addr?" on":"");
+}
+async function switchChain(){
+  await window.ethereum.request({method:"wallet_addEthereumChain",params:[{
+    chainId:CHAIN_HEX,chainName:"Arc Testnet",
+    nativeCurrency:{name:"USD Coin",symbol:"USDC",decimals:18},
+    rpcUrls:["https://rpc.testnet.arc.network"],
+    blockExplorerUrls:[EXPLORER],
+  }]});
+}
+async function connectWallet(){
+  clearLog(1);
+  try{
+    if(!window.ethereum) throw new Error("MetaMask not detected.");
+    log(1,"Requesting accounts…");
+    await window.ethereum.request({method:"eth_requestAccounts"});
+    const cid=parseInt(await window.ethereum.request({method:"eth_chainId"}),16);
+    if(cid!==CHAIN_ID){log(1,"Wrong network — switching to Arc Testnet…");await switchChain();}
+    provider=new ethers.BrowserProvider(window.ethereum);
+    signer=await provider.getSigner();
+    const addr=await signer.getAddress();
+    const net=await provider.getNetwork();
+    setSB(addr,"Arc Testnet ("+net.chainId+")");
+    log(1,"Connected: "+addr,"ok");
+  }catch(e){log(1,"Error: "+(e.shortMessage||e.message),"err")}
+}
+function needSigner(id){if(!signer){log(id,"Connect wallet first (Step 1).","err");return false;}return true;}
+function needOrch(id){
+  const a=C.AgentOrchestrator||document.getElementById("oa").value.trim();
+  if(!a||!ethers.isAddress(a)){log(id,"Enter the AgentOrchestrator address above.","err");return null;}
+  C.AgentOrchestrator=a;return a;
+}
+function oc(){return new ethers.Contract(C.AgentOrchestrator,OABI,signer);}
+
+async function createOrchestra(){
+  clearLog(2);if(!needSigner(2))return;if(!needOrch(2))return;
+  try{
+    const lead=BigInt(document.getElementById("co-lead").value.trim());
+    const subs=document.getElementById("co-subs").value.split(",").map(s=>BigInt(s.trim()));
+    const splits=document.getElementById("co-splits").value.split(",").map(s=>BigInt(s.trim()));
+    const desc=document.getElementById("co-desc").value.trim();
+    if(splits.reduce((a,b)=>a+b,0n)!==10000n) throw new Error("Splits must sum to 10000.");
+    log(2,"Sending createOrchestra…");
+    const tx=await oc().createOrchestra(lead,subs,splits,desc);
+    logTx(2,tx.hash,"Tx sent");
+    const r=await tx.wait();
+    log(2,"Confirmed in block "+r.blockNumber,"ok");
+  }catch(e){log(2,"Error: "+(e.shortMessage||e.message),"err")}
+}
+
+async function acceptRole(){
+  clearLog(3);if(!needSigner(3))return;if(!needOrch(3))return;
+  try{
+    const oid=BigInt(document.getElementById("ar-orch").value.trim());
+    const aid=BigInt(document.getElementById("ar-agent").value.trim());
+    log(3,"Sending acceptOrchestraRole…");
+    const tx=await oc().acceptOrchestraRole(oid,aid);
+    logTx(3,tx.hash,"Tx sent");
+    const r=await tx.wait();log(3,"Confirmed in block "+r.blockNumber,"ok");
+  }catch(e){log(3,"Error: "+(e.shortMessage||e.message),"err")}
+}
+
+async function fundJob(){
+  clearLog(4);if(!needSigner(4))return;const oa=needOrch(4);if(!oa)return;
+  try{
+    const oid=BigInt(document.getElementById("fj-orch").value.trim());
+    const amt=BigInt(document.getElementById("fj-amount").value.trim());
+    const desc=document.getElementById("fj-desc").value.trim();
+    const usdc=new ethers.Contract(C.USDC,ERC20ABI,signer);
+    const me=await signer.getAddress();
+    log(4,"Checking allowance…");
+    const al=await usdc.allowance(me,oa);
+    if(al<amt){
+      log(4,"Approving USDC…");
+      const at=await usdc.approve(oa,amt);
+      logTx(4,at.hash,"Approve sent");await at.wait();log(4,"Approved.","ok");
+    }else{log(4,"Allowance sufficient, skipping approve.","ok")}
+    log(4,"Sending createOrchestratedJob…");
+    const tx=await oc().createOrchestratedJob(oid,amt,desc);
+    logTx(4,tx.hash,"Tx sent");
+    const r=await tx.wait();log(4,"Job created, block "+r.blockNumber,"ok");
+  }catch(e){log(4,"Error: "+(e.shortMessage||e.message),"err")}
+}
+
+async function submitDeliverable(){
+  clearLog(5);if(!needSigner(5))return;if(!needOrch(5))return;
+  try{
+    const jid=BigInt(document.getElementById("sd-job").value.trim());
+    const aid=BigInt(document.getElementById("sd-agent").value.trim());
+    let h=document.getElementById("sd-hash").value.trim();
+    if(!h.startsWith("0x"))h="0x"+h;
+    if(ethers.hexlify(h).length!==66) throw new Error("deliverableHash must be 32 bytes.");
+    log(5,"Sending submitSubDeliverable…");
+    const tx=await oc().submitSubDeliverable(jid,aid,h);
+    logTx(5,tx.hash,"Tx sent");const r=await tx.wait();log(5,"Confirmed in block "+r.blockNumber,"ok");
+  }catch(e){log(5,"Error: "+(e.shortMessage||e.message),"err")}
+}
+
+async function approveDeliverable(){
+  clearLog(6);if(!needSigner(6))return;if(!needOrch(6))return;
+  try{
+    const jid=BigInt(document.getElementById("ad-job").value.trim());
+    const aid=BigInt(document.getElementById("ad-agent").value.trim());
+    log(6,"Sending approveSubDeliverable…");
+    const tx=await oc().approveSubDeliverable(jid,aid);
+    logTx(6,tx.hash,"Tx sent");const r=await tx.wait();log(6,"Confirmed in block "+r.blockNumber,"ok");
+  }catch(e){log(6,"Error: "+(e.shortMessage||e.message),"err")}
+}
+
+async function completeJob(){
+  clearLog(7);if(!needSigner(7))return;if(!needOrch(7))return;
+  try{
+    const jid=BigInt(document.getElementById("cj-job").value.trim());
+    log(7,"Sending completeOrchestratedJob…");
+    const tx=await oc().completeOrchestratedJob(jid);
+    logTx(7,tx.hash,"Tx sent");const r=await tx.wait();
+    log(7,"Job completed & USDC distributed. Block "+r.blockNumber,"ok");
+  }catch(e){log(7,"Error: "+(e.shortMessage||e.message),"err")}
+}
+
+async function viewOrchestra(){
+  clearLog(8);if(!needSigner(8))return;const oa=needOrch(8);if(!oa)return;
+  try{
+    const oid=BigInt(document.getElementById("vs-orch").value.trim()||"0");
+    const rc=new ethers.Contract(oa,OABI,provider);
+    const o=await rc.getOrchestra(oid);
+    document.getElementById("vr-o").innerHTML=`<strong>Orchestra #${oid}</strong>
+Lead: ${o.leadAgentId}<br>Subs: ${o.subAgentIds?o.subAgentIds.join(", "):"—"}<br>
+Splits: ${o.splits?o.splits.join(", "):"—"}<br>Active: ${o.active}<br>
+<span class="mono">${o.description}</span>`;
+    document.getElementById("vrs").style.display="grid";
+    log(8,"Orchestra loaded.","ok");
+  }catch(e){log(8,"Error: "+(e.shortMessage||e.message),"err")}
+}
+
+async function viewJob(){
+  clearLog(8);if(!needSigner(8))return;const oa=needOrch(8);if(!oa)return;
+  try{
+    const jid=BigInt(document.getElementById("vs-job").value.trim()||"0");
+    const rc=new ethers.Contract(oa,OABI,provider);
+    const j=await rc.getOrchestratedJob(jid);
+    const SL=["OPEN","ACTIVE","COMPLETED","CANCELLED"];
+    document.getElementById("vr-j").innerHTML=`<strong>Job #${jid}</strong>
+Orchestra: ${j.orchestraId}<br>Client: <span class="mono">${j.client}</span><br>
+Amount: ${ethers.formatUnits(j.totalAmount,18)} USDC<br>Status: ${SL[Number(j.status)]||j.status}<br>
+<span class="mono">${j.description}</span>`;
+    document.getElementById("vrs").style.display="grid";
+    log(8,"Job loaded.","ok");
+  }catch(e){log(8,"Error: "+(e.shortMessage||e.message),"err")}
+}
+
+window.addEventListener("load",async()=>{
+  if(!window.ethereum)return;
+  window.ethereum.on("accountsChanged",async(a)=>{
+    if(!a.length){provider=null;signer=null;setSB(null,null);}
+    else{provider=new ethers.BrowserProvider(window.ethereum);signer=await provider.getSigner();setSB(a[0],"Arc Testnet");}
+  });
+  window.ethereum.on("chainChanged",()=>location.reload());
+  try{
+    const a=await window.ethereum.request({method:"eth_accounts"});
+    if(a.length){provider=new ethers.BrowserProvider(window.ethereum);signer=await provider.getSigner();
+      const net=await provider.getNetwork();setSB(a[0],"Chain "+net.chainId);}
+  }catch(_){}
+});
+</script>
+</body>
+</html>
