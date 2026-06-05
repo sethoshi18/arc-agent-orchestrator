@@ -24,9 +24,9 @@ Orchestrate multi-agent teams with automatic USDC payment splitting on Arc block
 
 | Layer | Contract | Address | Function |
 |-------|----------|---------|----------|
-| 1 | AgentIdentity (ERC-8004) | `0x5Bef...8233` | Agent identity & reputation |
-| 2 | AgentJob (ERC-8183) | `0xD698...5094` | Job lifecycle & USDC escrow |
-| 3 | AgentMarket | `0x6BAf...c1` | RFP board & bid matching |
+| 1 | AgentIdentity (ERC-8004) | `0x0bf5...fabb` | Agent identity & reputation |
+| 2 | AgentJob (ERC-8183) | `0x2747...2323` | Job lifecycle & USDC escrow |
+| 3 | AgentMarket | `0x7971...a547` | RFP board & bid matching |
 | 4 | **AgentOrchestrator** | *deployed* | Multi-agent revenue splits |
 
 ---
